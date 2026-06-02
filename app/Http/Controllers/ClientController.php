@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 
 class ClientController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         // Mock Data Pesanan Aktif (Simulasi jika Klien punya pesanan yang sedang jalan)
         $activeOrder = [
@@ -14,7 +14,7 @@ class ClientController extends Controller
             'game' => 'Genshin Impact',
             'status' => 'Sedang Dikerjakan',
             // Kita simulasikan status dari session Mitra tadi
-            'session_locked' => session('session_status', 'unlocked') === 'locked', 
+            'session_locked' => session('session_status', 'unlocked') === 'locked',
         ];
 
         // Mock Data Katalog Jasa Mitra
@@ -60,6 +60,14 @@ class ClientController extends Controller
                 'reviews' => 42
             ],
         ];
+
+        $category = $request->category;
+
+        if ($category) {
+            $services = array_filter($services, function ($service) use ($category) {
+                return $service['category'] === $category;
+            });
+        }
 
         return view('client.dashboard', compact('activeOrder', 'services'));
     }
