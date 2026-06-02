@@ -8,10 +8,10 @@ class MitraController extends Controller
 {
     public function index()
     {
-        // Simulasi ngambil data dari Database. 
+        // Simulasi ngambil data dari Database.
         // Kita simpan status di Session Laravel agar tombolnya bisa interaktif.
         // Default-nya adalah 'unlocked' jika session belum diset.
-        $sessionStatus = session('session_status', 'unlocked');
+        $sessionStatus = session('session_status', 'locked');
 
         $mockOrder = [
             'order_id' => 'ORD-88291A',
