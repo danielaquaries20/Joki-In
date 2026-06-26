@@ -3,40 +3,54 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\Order; // Pastikan model Order di-import
 
 class MitraController extends Controller
 {
-    public function index()
+    public function dashboard()
     {
-        // Simulasi ngambil data dari Database.
-        // Kita simpan status di Session Laravel agar tombolnya bisa interaktif.
-        // Default-nya adalah 'unlocked' jika session belum diset.
-        $sessionStatus = session('session_status', 'locked');
+        // Mengambil seluruh data order riil dari database
+        $orders = Order::all();
 
-        $mockOrder = [
-            'order_id' => 'ORD-88291A',
-            'game' => 'Genshin Impact',
-            'service_name' => 'Farming Material Karakter & Eksplorasi',
-            'client_name' => 'Ahmad K.',
-            'earnings' => 120000,
-            'session_status' => $sessionStatus,
-        ];
+        return view('mitra.dashboard', [
+            'orders'        => $orders,
+            'totalOrders'   => $orders->count(),
+            'activeOrders'  => $orders->where('status', 'Sedang Dikerjakan')->count(),
+            'pendingOrders' => $orders->where('status', 'Menunggu Dikerjakan')->count(),
+        ]);
+    }
 
-        return view('mitra.dashboard', compact('mockOrder'));
+    public function orderDetail($id)
+    {
+        // Mengambil satu data order berdasarkan ID dari database, otomatis 404 jika tidak ada
+        $order = Order::findOrFail($id);
+
+        return view('mitra.detail', compact('order'));
     }
 
     public function toggleSession(Request $request)
     {
-        // Ambil status saat ini
-        $currentStatus = session('session_status', 'unlocked');
+        $request->validate([
+            'order_id' => 'required|exists:orders,id',
+            'stream_url' => 'nullable|url',
+        ]);
 
-        // Balikkan statusnya (Toggle): Jika unlocked jadi locked, jika locked jadi unlocked
-        $newStatus = ($currentStatus === 'unlocked') ? 'locked' : 'unlocked';
+        $order = Order::findOrFail($request->order_id);
 
-        // Simpan status baru ke session
-        session(['session_status' => $newStatus]);
+        if ($order->session_status == 'unlocked') {
 
-        // Redirect kembali ke halaman dashboard dengan pesan sukses
-        return redirect()->route('mitra.dashboard')->with('success', 'Status keamanan sesi berhasil diperbarui!');
+            $order->update([
+                'session_status' => 'locked',
+                'stream_url' => $request->stream_url,
+            ]);
+        } else {
+
+            $order->update([
+                'session_status' => 'unlocked',
+                'stream_url' => null,
+            ]);
+        }
+
+        return back()->with('success', 'Status sesi berhasil diperbarui.');
     }
 }

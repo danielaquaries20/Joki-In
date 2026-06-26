@@ -16,7 +16,7 @@
 
             <div class="hidden md:block flex-1 max-w-xl mx-8">
                 <div class="relative">
-                    <input type="text" placeholder="Cari game atau jasa (Cth: Genshin, Valorant)..."
+                    <input id="search-input" type="text" placeholder="Cari game atau jasa..."
                         class="w-full bg-gray-100 border-transparent focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 rounded-lg py-2 px-4 text-sm transition-all">
                     <svg class="w-5 h-5 text-gray-400 absolute right-3 top-2.5" fill="none" stroke="currentColor"
                         viewBox="0 0 24 24">
@@ -27,15 +27,22 @@
             </div>
 
             <div class="flex items-center space-x-3">
-
                 <div class="text-right hidden sm:block">
                     <p class="text-xs text-gray-500">Saldo Escrow</p>
                     <p class="text-sm font-bold text-gray-900">Rp 500.000</p>
                 </div>
 
-                <div
-                    class="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center font-bold border border-indigo-200">
-                    {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
+                <div class="relative group">
+                    <div
+                        class="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center font-bold border border-indigo-200 cursor-pointer">
+                        {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
+                    </div>
+
+                    <div
+                        class="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-lg p-3 hidden group-hover:block">
+                        <p class="font-semibold">{{ Auth::user()->name }}</p>
+                        <p class="text-sm text-gray-500">{{ Auth::user()->role }}</p>
+                    </div>
                 </div>
 
                 <form action="{{ route('logout') }}" method="POST">
@@ -44,7 +51,6 @@
                         Logout
                     </button>
                 </form>
-
             </div>
         </div>
     </nav>
@@ -54,12 +60,16 @@
         @if ($activeOrder)
             <div class="mb-8 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div class="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
-                    <h2 class="font-bold text-gray-800">Pesanan Aktif Anda ({{ $activeOrder['game'] }})</h2>
-                    <a href="https://www.youtube.com/watch?v=xfuIlmywvXI" class="text-sm text-indigo-600 font-semibold hover:text-indigo-800">Lihat Detail &
-                        Live Stream &rarr;</a>
+                    <h2 class="font-bold text-gray-800">Pesanan Aktif Anda ({{ $activeOrder->game }})</h2>
+
+                    <a href="{{ route('order.detail', $activeOrder->id) }}"
+                        class="text-sm text-indigo-600 font-semibold hover:text-indigo-800">
+                        Lihat Detail & Live Stream &rarr;
+                    </a>
                 </div>
+
                 <div class="p-4">
-                    @if ($activeOrder['session_locked'])
+                    @if ($activeOrder->session_status == 'locked')
                         <div class="flex items-start bg-red-50 border border-red-200 rounded-lg p-4 animate-pulse">
                             <svg class="w-6 h-6 text-red-500 mr-3 mt-0.5 flex-shrink-0" fill="none"
                                 stroke="currentColor" viewBox="0 0 24 24">
@@ -93,58 +103,56 @@
 
         <div class="flex space-x-2 mb-6 overflow-x-auto pb-2">
             <button id="all-filter"
-                class="px-5 py-2 bg-indigo-600 text-white rounded-full text-sm font-medium whitespace-nowrap shadow-sm">
-                Semua Jasa
-            </button>
+                class="px-5 py-2 bg-indigo-600 text-white rounded-full text-sm font-medium whitespace-nowrap shadow-sm">Semua
+                Jasa</button>
             <button id="single-filter"
-                class="px-5 py-2 bg-white text-gray-600 border border-gray-200 rounded-full text-sm font-medium whitespace-nowrap transition-colors">
-                Game Single-Player (Gacha)
-            </button>
+                class="px-5 py-2 bg-white text-gray-600 border border-gray-200 rounded-full text-sm font-medium whitespace-nowrap transition-colors">Game
+                Single-Player (Gacha)</button>
             <button id="comp-filter"
-                class="px-5 py-2 bg-white text-gray-600 border border-gray-200 rounded-full text-sm font-medium whitespace-nowrap transition-colors">
-                Game Kompetitif (Mabar)
-            </button>
+                class="px-5 py-2 bg-white text-gray-600 border border-gray-200 rounded-full text-sm font-medium whitespace-nowrap transition-colors">Game
+                Kompetitif (Mabar)</button>
         </div>
 
         <h2 class="text-xl font-bold text-gray-900 mb-6">Rekomendasi Mitra Joki In</h2>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-
             @foreach ($services as $service)
                 <div class="service-card bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow duration-300 flex flex-col"
-                    data-category="{{ $service['category'] }}">
+                    data-category="{{ $service->category }}"
+                    data-search="{{ strtolower($service->game . ' ' . $service->title . ' ' . $service->mitra_name) }}">
+
                     <div
                         class="h-32 bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center text-white relative">
-                        <span class="font-bold text-lg opacity-80">{{ $service['game'] }}</span>
+                        <span class="font-bold text-lg opacity-80">{{ $service->game }}</span>
                         <span
                             class="absolute top-2 right-2 bg-white text-gray-800 text-xs font-bold px-2 py-1 rounded shadow-sm">
-                            {{ $service['category'] }}
+                            {{ $service->category }}
                         </span>
                     </div>
 
                     <div class="p-4 flex-1 flex flex-col">
                         <div class="flex justify-between items-start mb-2">
-                            <span class="text-xs font-bold text-gray-500 uppercase">{{ $service['mitra_name'] }}</span>
+                            <span class="text-xs font-bold text-gray-500 uppercase">{{ $service->mitra_name }}</span>
                             <div class="flex items-center text-yellow-500 text-xs font-bold">
                                 <svg class="w-3 h-3 mr-1 fill-current" viewBox="0 0 20 20">
                                     <path
                                         d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z">
                                     </path>
                                 </svg>
-                                {{ $service['rating'] }} ({{ $service['reviews'] }})
+                                {{ $service->rating }} ({{ $service->reviews }})
                             </div>
                         </div>
 
-                        <h3 class="font-bold text-gray-900 text-sm mb-2 leading-tight flex-1">{{ $service['title'] }}
+                        <h3 class="font-bold text-gray-900 text-sm mb-2 leading-tight flex-1">{{ $service->title }}
                         </h3>
 
                         <div class="mt-4 flex items-center justify-between border-t border-gray-100 pt-3">
                             <div>
                                 <span class="text-xs text-gray-500 block">Mulai dari</span>
                                 <span class="font-bold text-indigo-600">Rp
-                                    {{ number_format($service['price'], 0, ',', '.') }}</span>
+                                    {{ number_format($service->price, 0, ',', '.') }}</span>
                             </div>
-                            <a href="{{ route('client.checkout', $service['id']) }}"
+                            <a href="{{ route('client.checkout', $service->id) }}"
                                 class="bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors">
                                 Pesan
                             </a>
@@ -152,56 +160,45 @@
                     </div>
                 </div>
             @endforeach
-
         </div>
     </main>
 
     <script>
         const cards = document.querySelectorAll('.service-card');
-
         const allBtn = document.getElementById('all-filter');
         const singleBtn = document.getElementById('single-filter');
         const compBtn = document.getElementById('comp-filter');
+        const searchInput = document.getElementById('search-input');
 
         function setActiveButton(activeBtn) {
             [allBtn, singleBtn, compBtn].forEach(btn => {
                 btn.classList.remove('bg-indigo-600', 'text-white');
                 btn.classList.add('bg-white', 'text-gray-600');
             });
-
             activeBtn.classList.remove('bg-white', 'text-gray-600');
             activeBtn.classList.add('bg-indigo-600', 'text-white');
         }
 
         allBtn.addEventListener('click', () => {
             setActiveButton(allBtn);
-
-            cards.forEach(card => {
-                card.style.display = 'flex';
-            });
+            cards.forEach(card => card.style.display = 'flex');
         });
 
         singleBtn.addEventListener('click', () => {
             setActiveButton(singleBtn);
-
-            cards.forEach(card => {
-                if (card.dataset.category === 'Single-Player') {
-                    card.style.display = 'flex';
-                } else {
-                    card.style.display = 'none';
-                }
-            });
+            cards.forEach(card => card.style.display = card.dataset.category === 'Single-Player' ? 'flex' : 'none');
         });
 
         compBtn.addEventListener('click', () => {
             setActiveButton(compBtn);
+            cards.forEach(card => card.style.display = card.dataset.category === 'Kompetitif' ? 'flex' : 'none');
+        });
 
+        searchInput.addEventListener('keyup', function() {
+            const keyword = this.value.toLowerCase();
             cards.forEach(card => {
-                if (card.dataset.category === 'Kompetitif') {
-                    card.style.display = 'flex';
-                } else {
-                    card.style.display = 'none';
-                }
+                const searchable = card.dataset.search.toLowerCase();
+                card.style.display = searchable.includes(keyword) ? 'flex' : 'none';
             });
         });
     </script>

@@ -17,7 +17,7 @@ Route::post('/login', [AuthController::class, 'processLogin'])->name('login.proc
 Route::post('/register', [AuthController::class, 'processRegister'])->name('register.process');
 
 // Route untuk melihat Dashboard Mitra
-Route::get('/mitra/dashboard', [MitraController::class, 'index'])
+Route::get('/mitra/dashboard', [MitraController::class, 'dashboard'])
     ->middleware('role:mitra')
     ->name('mitra.dashboard');
 
@@ -34,6 +34,12 @@ Route::get('/client/dashboard', [App\Http\Controllers\ClientController::class, '
 // Route untuk halaman Checkout / Pembayaran
 Route::get('/client/checkout/{id}', [App\Http\Controllers\ClientController::class, 'checkout'])->name('client.checkout');
 Route::post('/client/checkout/process', [App\Http\Controllers\ClientController::class, 'processCheckout'])->name('client.checkout.process');
+
+// Route order
+Route::middleware('auth')->group(function () {
+    Route::get('/order/{id}', [MitraController::class, 'orderDetail'])
+        ->name('order.detail');
+});
 
 //Logout
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
