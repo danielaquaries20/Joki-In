@@ -3,54 +3,88 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Order; // Pastikan model Order di-import
+use App\Models\Order;
+use App\Models\Service;
+use Illuminate\Support\Facades\Auth;
 
 class MitraController extends Controller
 {
-    public function dashboard()
+    public function index()
     {
-        // Mengambil seluruh data order riil dari database
-        $orders = Order::all();
+        $currentMitraName = Auth::user()->name;
+        $orders = Order::whereHas('service', function ($query) use ($currentMitraName) {
+            $query->where('mitra_name', $currentMitraName);
+        })->latest()->get();
 
-        return view('mitra.dashboard', [
-            'orders'        => $orders,
-            'totalOrders'   => $orders->count(),
-            'activeOrders'  => $orders->where('status', 'Sedang Dikerjakan')->count(),
-            'pendingOrders' => $orders->where('status', 'Menunggu Dikerjakan')->count(),
-        ]);
+        $totalOrders = $orders->count();
+        $activeOrders = $orders->whereIn('status', ['Sedang Dikerjakan', 'processing'])->count();
+        $pendingOrders = $orders->whereIn('status', ['Menunggu Dikerjakan', 'pending_payment'])->count();
+
+        return view('mitra.dashboard', compact('orders', 'totalOrders', 'activeOrders', 'pendingOrders'));
     }
 
     public function orderDetail($id)
     {
-        // Mengambil satu data order berdasarkan ID dari database, otomatis 404 jika tidak ada
-        $order = Order::findOrFail($id);
+        // Ambil data order beserta relasi servicenya (Eager Loading)
+        $order = Order::with('service')->where('id', $id)->firstOrFail();
 
-        return view('mitra.detail', compact('order'));
+        // Kirim $order dan $service sekaligus ke view
+        return view('mitra.detail', [
+            'order' => $order,
+            'service' => $order->service // Mengambil object service dari relasi
+        ]);
     }
 
     public function toggleSession(Request $request)
     {
         $request->validate([
             'order_id' => 'required|exists:orders,id',
-            'stream_url' => 'nullable|url',
+            'stream_url' => 'nullable|url'
         ]);
 
         $order = Order::findOrFail($request->order_id);
 
         if ($order->session_status == 'unlocked') {
-
             $order->update([
                 'session_status' => 'locked',
                 'stream_url' => $request->stream_url,
+                'status' => 'Sedang Dikerjakan'
             ]);
-        } else {
 
+            return redirect()->back()->with('success', 'Sesi pengerjaan dimulai, status order diubah menjadi Sedang Dikerjakan!');
+        } else {
             $order->update([
                 'session_status' => 'unlocked',
-                'stream_url' => null,
             ]);
-        }
 
-        return back()->with('success', 'Status sesi berhasil diperbarui.');
+            return redirect()->back()->with('success', 'Sesi diakhiri, akun client kembali terbuka.');
+        }
+    }
+
+    public function createService()
+    {
+        return view('mitra.create-service');
+    }
+
+    public function storeService(Request $request)
+    {
+        $request->validate([
+            'game' => 'required|string|max:255',
+            'category' => 'required|string',
+            'title' => 'required|string|max:255',
+            'price' => 'required|numeric|min:1000',
+        ]);
+
+        Service::create([
+            'game' => $request->game,
+            'category' => $request->category,
+            'title' => $request->title,
+            'price' => $request->price,
+            'mitra_name' => Auth::user()->name,
+            'rating' => 5.0,
+            'reviews' => 0,
+        ]);
+
+        return redirect()->route('mitra.dashboard')->with('success', 'Jasa joki baru berhasil ditambahkan!');
     }
 }

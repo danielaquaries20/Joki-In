@@ -9,13 +9,8 @@ class Order extends Model
 {
     use HasFactory;
 
-    /**
-     * Kolom-kolom yang diizinkan untuk diisi secara massal (Mass Assignment).
-     * Sesuaikan dengan kolom yang telah kita buat di file migration.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
+        'service_id',
         'order_code',
         'client',
         'game',
@@ -24,5 +19,14 @@ class Order extends Model
         'status',
         'session_status',
         'stream_url',
+        'game_id',
+        'game_password',
+        'game_server',
+        'payment_receipt',
     ];
+
+    public function service()
+    {
+        return $this->belongsTo(Service::class, 'service_id');
+    }
 }
