@@ -3,40 +3,88 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\Order;
+use App\Models\Service;
+use Illuminate\Support\Facades\Auth;
 
 class MitraController extends Controller
 {
     public function index()
     {
-        // Simulasi ngambil data dari Database.
-        // Kita simpan status di Session Laravel agar tombolnya bisa interaktif.
-        // Default-nya adalah 'unlocked' jika session belum diset.
-        $sessionStatus = session('session_status', 'locked');
+        $currentMitraName = Auth::user()->name;
+        $orders = Order::whereHas('service', function ($query) use ($currentMitraName) {
+            $query->where('mitra_name', $currentMitraName);
+        })->latest()->get();
 
-        $mockOrder = [
-            'order_id' => 'ORD-88291A',
-            'game' => 'Genshin Impact',
-            'service_name' => 'Farming Material Karakter & Eksplorasi',
-            'client_name' => 'Ahmad K.',
-            'earnings' => 120000,
-            'session_status' => $sessionStatus,
-        ];
+        $totalOrders = $orders->count();
+        $activeOrders = $orders->whereIn('status', ['Sedang Dikerjakan', 'processing'])->count();
+        $pendingOrders = $orders->whereIn('status', ['Menunggu Dikerjakan', 'pending_payment'])->count();
 
-        return view('mitra.dashboard', compact('mockOrder'));
+        return view('mitra.dashboard', compact('orders', 'totalOrders', 'activeOrders', 'pendingOrders'));
+    }
+
+    public function orderDetail($id)
+    {
+        // Ambil data order beserta relasi servicenya (Eager Loading)
+        $order = Order::with('service')->where('id', $id)->firstOrFail();
+
+        // Kirim $order dan $service sekaligus ke view
+        return view('mitra.detail', [
+            'order' => $order,
+            'service' => $order->service // Mengambil object service dari relasi
+        ]);
     }
 
     public function toggleSession(Request $request)
     {
-        // Ambil status saat ini
-        $currentStatus = session('session_status', 'unlocked');
+        $request->validate([
+            'order_id' => 'required|exists:orders,id',
+            'stream_url' => 'nullable|url'
+        ]);
 
-        // Balikkan statusnya (Toggle): Jika unlocked jadi locked, jika locked jadi unlocked
-        $newStatus = ($currentStatus === 'unlocked') ? 'locked' : 'unlocked';
+        $order = Order::findOrFail($request->order_id);
 
-        // Simpan status baru ke session
-        session(['session_status' => $newStatus]);
+        if ($order->session_status == 'unlocked') {
+            $order->update([
+                'session_status' => 'locked',
+                'stream_url' => $request->stream_url,
+                'status' => 'Sedang Dikerjakan'
+            ]);
 
-        // Redirect kembali ke halaman dashboard dengan pesan sukses
-        return redirect()->route('mitra.dashboard')->with('success', 'Status keamanan sesi berhasil diperbarui!');
+            return redirect()->back()->with('success', 'Sesi pengerjaan dimulai, status order diubah menjadi Sedang Dikerjakan!');
+        } else {
+            $order->update([
+                'session_status' => 'unlocked',
+            ]);
+
+            return redirect()->back()->with('success', 'Sesi diakhiri, akun client kembali terbuka.');
+        }
+    }
+
+    public function createService()
+    {
+        return view('mitra.create-service');
+    }
+
+    public function storeService(Request $request)
+    {
+        $request->validate([
+            'game' => 'required|string|max:255',
+            'category' => 'required|string',
+            'title' => 'required|string|max:255',
+            'price' => 'required|numeric|min:1000',
+        ]);
+
+        Service::create([
+            'game' => $request->game,
+            'category' => $request->category,
+            'title' => $request->title,
+            'price' => $request->price,
+            'mitra_name' => Auth::user()->name,
+            'rating' => 5.0,
+            'reviews' => 0,
+        ]);
+
+        return redirect()->route('mitra.dashboard')->with('success', 'Jasa joki baru berhasil ditambahkan!');
     }
 }
