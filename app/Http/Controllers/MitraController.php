@@ -87,4 +87,28 @@ class MitraController extends Controller
 
         return redirect()->route('mitra.dashboard')->with('success', 'Jasa joki baru berhasil ditambahkan!');
     }
+
+    public function finishOrder(Request $request)
+    {
+        $request->validate([
+            'order_id' => 'required|exists:orders,id'
+        ]);
+
+        $order = Order::findOrFail($request->order_id);
+
+        if ($order->mitra !== auth()->user()->name) {
+            abort(403, 'Aksi tidak diizinkan.');
+        }
+
+        $order->update([
+            'status' => 'Menunggu Konfirmasi Client',
+            'session_status' => 'unlocked',
+            'stream_url' => null,
+        ]);
+
+        return back()->with(
+            'success',
+            'Pekerjaan selesai. Menunggu konfirmasi client.'
+        );
+    }
 }
