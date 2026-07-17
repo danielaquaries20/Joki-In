@@ -36,6 +36,7 @@
                 {{ session('success') }}
             </div>
         @endif
+
         <div class="p-6 bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
             <div class="flex flex-col sm:flex-row justify-between items-start gap-4">
                 <div>
@@ -134,7 +135,7 @@
                         </p>
                     </div>
 
-                    <form action="{{ route('mitra.session.toggle') }}" method="POST">
+                    <form action="{{ route('mitra.session.toggle') }}" method="POST" class="mb-4">
                         @csrf
                         <input type="hidden" name="order_id" value="{{ $order->id }}">
 
@@ -165,14 +166,7 @@
                         </div>
                     </div>
 
-                    <div class="mb-5 p-4 bg-gray-900 text-gray-100 rounded-xl font-mono text-xs space-y-1">
-                        <p class="text-gray-400">// Kredensial login aktif pengerjaan:</p>
-                        <p><span class="text-indigo-400">ID:</span> {{ $order->game_id }}</p>
-                        <p><span class="text-indigo-400">PASS:</span> <span
-                                class="text-red-400 font-bold select-all">{{ $order->game_password }}</span></p>
-                    </div>
-
-                    <form action="{{ route('mitra.session.toggle') }}" method="POST">
+                    <form action="{{ route('mitra.session.toggle') }}" method="POST" class="mb-4">
                         @csrf
                         <input type="hidden" name="order_id" value="{{ $order->id }}">
                         <button type="submit"
@@ -180,6 +174,22 @@
                             Akhiri Sesi Pengerjaan (Buka Sesi Akun)
                         </button>
                     </form>
+                @endif
+
+                @if ($order->status == 'Sedang Dikerjakan')
+                    <div class="mt-6 pt-6 border-t border-gray-100">
+                        <p class="text-xs text-gray-400 font-medium mb-2.5">Jika Anda sudah menyelesaikan seluruh target
+                            joki, tandai pesanan ini agar Klien melakukan konfirmasi.</p>
+                        <form action="{{ route('mitra.order.finish') }}" method="POST"
+                            onsubmit="return confirm('Apakah Anda yakin tugas joki telah selesai? Sistem akan memberitahu Klien untuk melepas dana escrow.')">
+                            @csrf
+                            <input type="hidden" name="order_id" value="{{ $order->id }}">
+                            <button type="submit"
+                                class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition-colors shadow-sm text-sm text-center block">
+                                🔔 Nyatakan Pesanan Selesai (Minta Konfirmasi Client)
+                            </button>
+                        </form>
+                    </div>
                 @endif
             @else
                 <h4 class="font-bold text-gray-800 text-base mb-4">Status Sesi Keamanan Akun</h4>
@@ -204,12 +214,12 @@
 
                     @if ($order->stream_url)
                         <a href="{{ $order->stream_url }}" target="_blank"
-                            class="inline-flex items-center bg-red-600 hover:bg-red-700 text-white text-sm font-bold px-5 py-3 rounded-xl transition-colors shadow mb-2">
+                            class="inline-flex items-center bg-red-600 hover:bg-red-700 text-white text-sm font-bold px-5 py-3 rounded-xl transition-colors shadow mb-4">
                             <span class="mr-2">🎥</span> Tonton Live Stream Pengerjaan Akun
                         </a>
                     @endif
                 @else
-                    <div class="bg-green-50 border border-green-200 rounded-xl p-4 mb-2 flex items-start">
+                    <div class="bg-green-50 border border-green-200 rounded-xl p-4 mb-4 flex items-start">
                         <svg class="w-5 h-5 text-green-500 mr-2.5 mt-0.5 flex-shrink-0" fill="none"
                             stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -225,17 +235,20 @@
                     </div>
                 @endif
 
-                @if ($order->status == 'Sedang Dikerjakan')
-                    <div class="mt-6 pt-6 border-t border-gray-100">
-                        <p class="text-xs text-gray-400 font-medium mb-2.5">Apakah seluruh target joki game telah
-                            dipenuhi dengan benar oleh Mitra?</p>
+                @if ($order->status == 'Sedang Dikerjakan' || $order->status == 'Menunggu Konfirmasi Client')
+                    <div
+                        class="mt-6 pt-6 border-t border-gray-100 bg-amber-50/50 p-4 rounded-xl border border-amber-100">
+                        <h5 class="text-sm font-bold text-amber-900 mb-1">Konfirmasi Penyelesaian Pesanan</h5>
+                        <p class="text-xs text-amber-700 font-medium mb-3">Apakah seluruh target joki game telah
+                            dipenuhi dengan benar oleh Mitra? Tekan tombol di bawah untuk menyelesaikan transaksi secara
+                            permanen.</p>
                         <form action="{{ route('client.order.complete') }}" method="POST"
                             onsubmit="return confirm('Apakah Anda yakin ingin menyelesaikan pesanan ini? Saldo jaminan escrow akan diteruskan permanen ke dompet Mitra.')">
                             @csrf
                             <input type="hidden" name="order_id" value="{{ $order->id }}">
                             <button type="submit"
-                                class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl transition-colors shadow-sm text-sm text-center block">
-                                Selesaikan Pesanan & Lepas Saldo Escrow
+                                class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl transition-colors shadow-md text-sm text-center block">
+                                ✓ Konfirmasi Selesai & Lepas Saldo Escrow
                             </button>
                         </form>
                     </div>
@@ -243,7 +256,6 @@
             @endif
 
         </div>
-
 
         <div class="mt-6 text-center sm:text-left">
             @if (Auth::user()->role == 'mitra')
@@ -259,7 +271,6 @@
             @endif
         </div>
     </main>
-
 </body>
 
 </html>

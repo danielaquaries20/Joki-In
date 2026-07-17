@@ -23,7 +23,6 @@
     </nav>
 
     <main class="container mx-auto mt-8 px-4 max-w-5xl">
-        <!-- Tampilan Error Validasi Laravel Umum -->
         @if ($errors->any())
             <div class="mb-6 p-4 bg-red-100 border border-red-300 text-red-800 rounded-lg font-semibold">
                 <ul class="list-disc list-inside">
@@ -38,12 +37,11 @@
             id="checkoutForm">
             @csrf
 
-            <!-- Penyesuaian ke format Object Eloquent ($service->kolom) -->
             <input type="hidden" name="service_id" value="{{ $service->id }}">
             <input type="hidden" name="game" value="{{ $service->game }}">
             <input type="hidden" name="mitra_name" value="{{ $service->mitra_name }}">
             <input type="hidden" name="service_name" value="{{ $service->title }}">
-            <input type="hidden" name="price" value="{{ $service->price + 5000 }}"> {{-- Otomatis total harga asli + admin --}}
+            <input type="hidden" name="price" value="{{ $service->price + 5000 }}">
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
 
@@ -63,12 +61,18 @@
                             <div class="space-y-3">
                                 <input type="text" name="game_id" placeholder="Email / ID Game" required
                                     class="w-full p-2 border border-indigo-200 rounded text-sm focus:ring-1 focus:ring-indigo-500 outline-none bg-white">
-                                <input type="password" name="game_password" placeholder="Password Akun" required
+
+                                @if ($service->category == 'Single-Player')
+                                    <input type="password" name="game_password" placeholder="Password Akun" required
+                                        class="w-full p-2 border border-indigo-200 rounded text-sm focus:ring-1 focus:ring-indigo-500 outline-none bg-white">
+                                @endif
+
+                                <input type="text" name="game_server" placeholder="Server (Contoh: Asia)" required
                                     class="w-full p-2 border border-indigo-200 rounded text-sm focus:ring-1 focus:ring-indigo-500 outline-none bg-white">
-                                <input type="text" name="game_server" placeholder="Server (Cth: Asia)" required
-                                    class="w-full p-2 border border-indigo-200 rounded text-sm focus:ring-1 focus:ring-indigo-500 outline-none bg-white">
-                                <p class="text-xs text-indigo-600 font-medium">*Data ini dienkripsi secara aman dan
-                                    hanya akan dibuka oleh Mitra saat pengerjaan dimulai.</p>
+
+                                <p class="text-xs text-indigo-600">
+                                    *Data dienkripsi dan hanya dapat dibuka oleh mitra saat pengerjaan dimulai.
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -113,11 +117,9 @@
                             <p class="text-sm font-medium text-gray-700 mt-1">a.n PT Joki In Ekosistem</p>
                         </div>
 
-                        <!-- Bagian Upload dengan Preview dan Peringatan -->
                         <div class="mb-6">
                             <label class="block text-sm font-bold text-gray-700 mb-2">Unggah Bukti Transfer</label>
 
-                            <!-- Wadah Peringatan Client-side -->
                             <div id="uploadError"
                                 class="hidden mb-3 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg font-semibold flex items-center">
                                 <svg class="w-4 h-4 mr-2 shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -185,7 +187,6 @@
         </form>
     </main>
 
-    <!-- JavaScript Real-time Validation & Preview -->
     <script>
         const fileInput = document.getElementById('payment_receipt');
         const dropzone = document.getElementById('dropzone');
@@ -197,6 +198,29 @@
         const submitBtn = document.getElementById('submitBtn');
         const form = document.getElementById('checkoutForm');
 
+        // Drag and Drop Handlers
+        dropzone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            dropzone.classList.add('border-indigo-500', 'bg-indigo-50');
+        });
+
+        dropzone.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            dropzone.classList.remove('border-indigo-500', 'bg-indigo-50');
+        });
+
+        dropzone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            dropzone.classList.remove('border-indigo-500', 'bg-indigo-50');
+
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                fileInput.dispatchEvent(new Event('change'));
+            }
+        });
+
+        // Input Change Handler
         fileInput.addEventListener('change', function() {
             const file = this.files[0];
 
@@ -235,6 +259,7 @@
             reader.readAsDataURL(file);
         });
 
+        // Form Submit Validation
         form.addEventListener('submit', function(e) {
             if (!fileInput.files || fileInput.files.length === 0) {
                 e.preventDefault();
@@ -247,6 +272,7 @@
             }
         });
 
+        // Helper Functions
         function showError(message) {
             errorText.textContent = message;
             errorDiv.classList.remove('hidden');

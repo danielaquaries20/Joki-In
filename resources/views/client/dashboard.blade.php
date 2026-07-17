@@ -27,11 +27,6 @@
             </div>
 
             <div class="flex items-center space-x-3">
-                <div class="text-right hidden sm:block">
-                    <p class="text-xs text-gray-500">Saldo Escrow</p>
-                    <p class="text-sm font-bold text-gray-900">Rp 500.000</p>
-                </div>
-
                 <div class="relative group">
                     <div class="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center font-bold border border-indigo-200 cursor-pointer">
                         {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}

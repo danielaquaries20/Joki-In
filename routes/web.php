@@ -58,5 +58,10 @@ Route::get('/mitra/order/{id}', [MitraController::class, 'orderDetail'])
 // Route selesai
 Route::post('/client/order/complete', [App\Http\Controllers\ClientController::class, 'completeOrder'])->name('client.order.complete');
 
+// Route selesai mitra
+Route::post('/mitra/order/finish',
+    [MitraController::class, 'finishOrder'])
+    ->name('mitra.order.finish');
+
 //Logout
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
